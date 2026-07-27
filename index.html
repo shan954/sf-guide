@@ -224,6 +224,49 @@
     font-size: 11px;
     line-height: 1.5;
   }
+  .hoodbar {
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .hoodbar select {
+    width: 100%;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b6b6b' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .group-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 24px;
+    background: #f7f5f0;
+    border-bottom: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #5a5346;
+    cursor: pointer;
+  }
+  .group-header:hover { background: #f0ede5; }
+  .group-count {
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
   .grip { display: none; }
   .footer {
     padding: 12px 24px;
@@ -236,7 +279,7 @@
      Map fills the screen; the list becomes a sheet you drag up
      from the bottom. Three snap positions: peek, half, full.
      ========================================================== */
-  @media (max-width: 820px) {
+  @media (max-width: 820px) and (orientation: portrait) {
     .app {
       display: block;
       position: relative;
@@ -287,9 +330,12 @@
     .header h1 { font-size: 18px; }
     .header p {
       font-size: 12px;
+      line-height: 1.4;
+      /* Wrap onto a second line, then cut off if it somehow runs longer. */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
     .filters {
       padding: 12px 20px;
@@ -299,6 +345,9 @@
       -webkit-overflow-scrolling: touch;
     }
     .filters::-webkit-scrollbar { display: none; }
+    .hoodbar { padding: 8px 20px; }
+    .hoodbar select { padding: 8px 10px; font-size: 14px; }
+    .group-header { padding: 7px 20px; }
     .chip {
       flex: 0 0 auto;
       font-size: 13px;
@@ -316,14 +365,15 @@
   }
 
   /* ==========================================================
-     PHONE IN LANDSCAPE
-     Wide but short. A bottom sheet would leave no map, so use a
-     narrow sidebar instead, the same idea as the desktop.
+     SHORT SCREENS (phone held sideways)
+     A phone in landscape is wide but only ~390px tall, so the
+     match is on height, not width. Every bit of chrome shrinks
+     to leave the list some room to breathe.
      ========================================================== */
-  @media (max-width: 820px) and (orientation: landscape) {
+  @media (orientation: landscape) and (max-height: 560px) {
     .app {
       display: grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 300px 1fr;
       overflow: visible;
     }
     #map { position: static; }
@@ -336,9 +386,45 @@
       box-shadow: none;
     }
     .grip { display: none; }
-    .header { padding: 14px 16px 10px; touch-action: auto; }
-    .filters { padding: 10px 16px; }
-    .place { padding: 12px 16px; }
+
+    /* Title only. The tagline costs a line we can't spare here. */
+    .header {
+      padding: 9px 14px 7px;
+      touch-action: auto;
+    }
+    .header h1 { font-size: 15px; }
+    .header p { display: none; }
+
+    .filters {
+      padding: 7px 14px;
+      gap: 5px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; font-size: 12px; padding: 5px 11px; }
+    .hoodbar { padding: 6px 14px; }
+    .hoodbar select { padding: 5px 9px; font-size: 12px; }
+    .group-header { padding: 5px 14px; font-size: 10px; }
+
+    /* Denser rows: two lines of description, no address line. */
+    .place { padding: 9px 14px; }
+    .place-header { margin-bottom: 2px; }
+    .place-name { font-size: 14px; }
+    .place-meta { margin-bottom: 3px; }
+    .place-desc {
+      font-size: 12px;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .place-address { display: none; }
+
+    .footer { padding: 6px 14px; font-size: 10px; }
+    .diag-panel { max-height: 50%; padding: 4px 14px 12px; }
   }
 
   /* The grip only exists on phones in portrait */
@@ -354,9 +440,12 @@
     <div class="grip" id="grip" aria-hidden="true"></div>
     <div class="header" id="sheet-header">
       <h1>Shan's SF City Guide</h1>
-      <p>A local's guide to places in San Francisco YC transplants won't know about</p>
+      <p>A curated local guide to places in SF the latest YC transplants won't know about</p>
     </div>
     <div class="filters" id="filters"></div>
+    <div class="hoodbar" hidden>
+      <select id="nb-select" aria-label="Filter by neighborhood"></select>
+    </div>
     <div class="list" id="list"></div>
     <div class="footer">
       Places: <span id="source-label">loading…</span>
@@ -379,10 +468,11 @@
   // Leave it empty to use the FALLBACK_PLACES list further down.
   //
   // Sheet columns (row 1 must be these headers, any order):
-  //   name | category | vibe | address | description | lat | lng
+  //   name | category | vibe | address | description | neighborhood | lat | lng
   //
-  // lat and lng are optional. Leave them blank and the address gets
-  // looked up automatically. Fill them in to pin an exact spot.
+  // Only `name` is required. Leave `neighborhood` out entirely and the
+  // area is worked out from the address; fill it in to override that.
+  // lat and lng are optional too — fill them to pin an exact spot.
   // ============================================================
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRV26aQBrZasOHEsVTb9YpTI-kttFYLbfSYLYFLUPziMdITXBAh6NVuQR20CGVBKuYfyayXh8RLV-Wl/pub?gid=0&single=true&output=csv";
 
@@ -552,15 +642,31 @@
       vibe: (row.vibe || '').trim(),
       address: (row.address || '').trim(),
       description: (row.description || '').trim(),
+      // Either spelling works, and it's optional — see nbOf() below.
+      neighborhood: (row.neighborhood || row.neighbourhood || '').trim(),
+      autoNeighborhood: '',
       lat: isFinite(lat) ? lat : null,
       lng: isFinite(lng) ? lng : null
     };
   }
 
+  // Where a place gets filed. Your sheet wins; otherwise we use what
+  // the map lookup reported; otherwise it lands in a catch-all group.
+  function nbOf(p) {
+    return p.neighborhood || p.autoNeighborhood || 'Elsewhere';
+  }
+
   // ============================================================
   // ADDRESS LOOKUP (only for rows with no lat/lng)
   // ============================================================
-  const GEO_CACHE_KEY = 'sfGuideGeoCache_v2';
+  const GEO_CACHE_KEY = 'sfGuideGeoCache_v3';
+
+  // Map services name areas inconsistently; take the first that fits.
+  function pickNeighborhood(a) {
+    if (!a) return '';
+    return (a.neighbourhood || a.quarter || a.suburb ||
+            a.city_district || a.borough || '').trim();
+  }
 
   function loadCache() {
     try { return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}'); }
@@ -584,19 +690,21 @@
       if (cache[p.address]) {
         p.lat = cache[p.address].lat;
         p.lng = cache[p.address].lng;
+        p.autoNeighborhood = cache[p.address].nb || '';
         continue;
       }
 
       try {
-        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
-          encodeURIComponent(p.address);
+        const url = 'https://nominatim.openstreetmap.org/search' +
+          '?format=json&limit=1&addressdetails=1&q=' + encodeURIComponent(p.address);
         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
         const data = res.ok ? await res.json() : [];
 
         if (data.length) {
           p.lat = parseFloat(data[0].lat);
           p.lng = parseFloat(data[0].lon);
-          cache[p.address] = { lat: p.lat, lng: p.lng };
+          p.autoNeighborhood = pickNeighborhood(data[0].address);
+          cache[p.address] = { lat: p.lat, lng: p.lng, nb: p.autoNeighborhood };
           saveCache(cache);
         } else {
           failures.push(p.name);
@@ -656,14 +764,32 @@
     const list = document.getElementById('list');
 
     if (!places.length) {
-      list.innerHTML = '<div class="notice"><strong>Nothing here yet</strong>' +
-        'Add a row to your sheet with this category and refresh.</div>';
+      list.innerHTML = '<div class="notice"><strong>Nothing matches</strong>' +
+        'Try another category or neighborhood.</div>';
       return;
     }
 
-    list.innerHTML = places.map((p, i) => {
-      const unlocated = !p.address && !(p.lat && p.lng);
-      return `
+    // Group by neighborhood, alphabetically, with the catch-all last.
+    const groups = new Map();
+    places.forEach((p, i) => {
+      const key = nbOf(p);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ p, i });
+    });
+
+    const names = [...groups.keys()].sort((a, b) => {
+      if (a === 'Elsewhere') return 1;
+      if (b === 'Elsewhere') return -1;
+      return a.localeCompare(b);
+    });
+
+    // With only one group there's nothing to separate, so skip headings.
+    const showHeadings = names.length > 1;
+
+    list.innerHTML = names.map(nb => {
+      const rows = groups.get(nb).map(({ p, i }) => {
+        const unlocated = !p.address && !(p.lat && p.lng);
+        return `
       <div class="place${unlocated ? ' unlocated' : ''}" data-idx="${i}">
         <div class="place-header">
           <div class="dot" style="background:${colorFor(p.category)}"></div>
@@ -678,7 +804,26 @@
           ? '<div class="no-pin">Add an address in your sheet to put this on the map</div>'
           : `<div class="place-address">${esc(p.address)}</div>`}
       </div>`;
+      }).join('');
+
+      if (!showHeadings) return rows;
+      return `<div class="group-header" data-nb="${esc(nb)}">` +
+        `${esc(nb)}<span class="group-count">${groups.get(nb).length}</span></div>` + rows;
     }).join('');
+
+    // Tapping a heading frames that neighborhood on the map.
+    list.querySelectorAll('.group-header').forEach(el => {
+      el.addEventListener('click', () => {
+        const nb = el.dataset.nb;
+        const pins = markers.filter(m => nbOf(m.placeData) === nb);
+        if (!pins.length) return;
+        map.fitBounds(L.featureGroup(pins).getBounds(), {
+          paddingTopLeft: [30, 30],
+          paddingBottomRight: [30, sheetCoverPx()],
+          maxZoom: 16
+        });
+      });
+    });
 
     list.querySelectorAll('.place').forEach(el => {
       el.addEventListener('click', () => {
@@ -707,10 +852,29 @@
 
   function renderFilters(places) {
     const categories = [...new Set(places.map(p => p.category))].sort();
+    const hoods = [...new Set(places.map(nbOf))].sort((a, b) => {
+      if (a === 'Elsewhere') return 1;
+      if (b === 'Elsewhere') return -1;
+      return a.localeCompare(b);
+    });
+
     const filters = document.getElementById('filters');
     filters.innerHTML =
       `<div class="chip active" data-filter="all">All</div>` +
       categories.map(c => `<div class="chip" data-filter="${esc(c)}">${esc(c)}</div>`).join('');
+
+    // Restore whichever chip was active before the rebuild.
+    filters.querySelectorAll('.chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.filter === activeFilter);
+    });
+
+    const select = document.getElementById('nb-select');
+    select.innerHTML =
+      `<option value="all">All neighborhoods</option>` +
+      hoods.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join('');
+    select.value = activeHood;
+    // Only worth showing once there's more than one.
+    select.parentElement.hidden = hoods.length < 2;
   }
 
   // ============================================================
@@ -718,14 +882,21 @@
   // ============================================================
   let ALL_PLACES = [];
   let activeFilter = 'all';
+  let activeHood = 'all';
 
   function applyFilter() {
-    const filtered = activeFilter === 'all'
-      ? ALL_PLACES
-      : ALL_PLACES.filter(p => p.category === activeFilter);
+    const filtered = ALL_PLACES.filter(p =>
+      (activeFilter === 'all' || p.category === activeFilter) &&
+      (activeHood === 'all' || nbOf(p) === activeHood)
+    );
     renderList(filtered);
     renderMarkers(filtered);
   }
+
+  document.getElementById('nb-select').addEventListener('change', (e) => {
+    activeHood = e.target.value;
+    applyFilter();
+  });
 
   document.getElementById('filters').addEventListener('click', (e) => {
     if (!e.target.classList.contains('chip')) return;
@@ -887,7 +1058,14 @@
       renderFilters(ALL_PLACES);
       applyFilter();              // show the list immediately
       await geocodeAll(ALL_PLACES);
+      renderFilters(ALL_PLACES);  // neighborhoods are known now
       applyFilter();              // redraw once pins are placed
+
+      const auto = ALL_PLACES.filter(p => !p.neighborhood && p.autoNeighborhood).length;
+      if (auto) {
+        note('Neighborhoods', auto + ' filled in automatically from the address. ' +
+          'Add a neighborhood column to your sheet to override any of them.');
+      }
     } catch (err) {
       console.error(err);
       document.getElementById('source-label').textContent = 'could not load';
