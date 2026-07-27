@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shan's SF City Guide</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --bg: #fafaf7;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e5e2db;
+    --accent: #c8553d;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    height: 100vh;
+  }
+  .sidebar {
+    border-right: 1px solid var(--line);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .header {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .header p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .filters {
+    display: flex;
+    gap: 6px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .chip {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .chip:hover { background: #f5f2ec; }
+  .chip.active {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px 0;
+  }
+  .place {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .place:hover { background: #f5f2ec; }
+  .place-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .place-name {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .place-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .place-category {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .vibe {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #f0ede5;
+    color: #5a5346;
+    border: 1px solid var(--line);
+    font-style: italic;
+  }
+  .place-desc {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+  }
+  .place-address {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  #map {
+    height: 100vh;
+    width: 100%;
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+  }
+  .popup-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .popup-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .popup-category {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .popup-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #333;
+  }
+  .notice {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .notice strong { color: var(--ink); display: block; margin-bottom: 6px; }
+  .diag {
+    margin-top: 14px;
+    text-align: left;
+    border-top: 1px solid var(--line);
+  }
+  .diag-row {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+  }
+  .diag-label {
+    flex: 0 0 96px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .diag-value {
+    flex: 1;
+    color: var(--ink);
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .footer {
+    padding: 12px 24px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 40vh 60vh; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--line); }
+    #map { height: 60vh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="header">
+      <h1>Shan's SF City Guide</h1>
+      <p>A local's guide to places in San Francisco YC transplants won't know about</p>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="list" id="list"></div>
+    <div class="footer">Places: <span id="source-label">loading…</span></div>
+  </aside>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+  // ============================================================
+  // 1. YOUR GOOGLE SHEET
+  // ============================================================
+  // Paste your published CSV link between the quotes below.
+  // (File > Share > Publish to web > pick the sheet > CSV > Publish)
+  //
+  // Leave it empty to use the FALLBACK_PLACES list further down.
+  //
+  // Sheet columns (row 1 must be these headers, any order):
+  //   name | category | vibe | address | description | lat | lng
+  //
+  // lat and lng are optional. Leave them blank and the address gets
+  // looked up automatically. Fill them in to pin an exact spot.
+  // ============================================================
+  const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRV26aQBrZasOHEsVTb9YpTI-kttFYLbfSYLYFLUPziMdITXBAh6NVuQR20CGVBKuYfyayXh8RLV-Wl/pub?gid=0&single=true&output=csv";
+
+  // Used only when SHEET_CSV_URL is empty.
+  const FALLBACK_PLACES = [
+    {
+      name: "Live Sushi",
+      category: "Restaurant",
+      vibe: "",
+      address: "2001 Bryant St, San Francisco, CA",
+      description: "Everyone needs a neighborhood sushi spot, this has been mine for 4 years. No frill, great value, great fish, good vibes."
+    }
+  ];
+
+  // ============================================================
+  // 2. CATEGORY COLORS
+  // ============================================================
+  // Add a line here to give a new category its own color. Any
+  // category you don't list gets a color from the spare palette.
+  // ============================================================
+  const CATEGORY_COLORS = {
+    "Bar": "#7b4b94",
+    "Restaurant": "#c8553d",
+    "Coffee": "#6b4423"
+  };
+  const SPARE_COLORS = ["#3d7a5c", "#2f6690", "#b07d2b", "#8c3b5e", "#4a5859"];
+
+  function colorFor(category) {
+    if (!CATEGORY_COLORS[category]) {
+      const used = Object.keys(CATEGORY_COLORS).length - 3;
+      CATEGORY_COLORS[category] = SPARE_COLORS[used % SPARE_COLORS.length];
+    }
+    return CATEGORY_COLORS[category];
+  }
+
+  // ============================================================
+  // MAP
+  // ============================================================
+  const map = L.map('map', { zoomControl: true }).setView([37.7749, -122.4394], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  const markers = [];
+
+  function makeIcon(category) {
+    return L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="
+        background:${colorFor(category)};
+        width:22px;height:22px;
+        border-radius:50%;
+        border:3px solid #fff;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      "></div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
+    });
+  }
+
+  // ============================================================
+  // LOADING FROM THE SHEET
+  // ============================================================
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collects what happened during load so the sidebar can show it.
+  const DIAG = { steps: [] };
+  function note(label, value) {
+    DIAG.steps.push({ label, value });
+    console.log('[sf-guide] ' + label + ':', value);
+  }
+
+  async function loadPlaces() {
+    if (!SHEET_CSV_URL) {
+      document.getElementById('source-label').textContent =
+        FALLBACK_PLACES.length + ' (from this file)';
+      return FALLBACK_PLACES.map(normalize);
+    }
+
+    // Cache-buster so edits show up without a hard refresh.
+    const url = SHEET_CSV_URL + (SHEET_CSV_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+
+    let res;
+    try {
+      res = await fetch(url);
+    } catch (netErr) {
+      note('Network error', netErr.message + ' — the request never reached Google. ' +
+        'Usually this is CORS, an offline connection, or a blocked request.');
+      throw netErr;
+    }
+
+    note('HTTP status', res.status + ' ' + res.statusText);
+    if (!res.ok) throw new Error('Sheet returned ' + res.status);
+
+    const csv = await res.text();
+    note('Bytes received', csv.length);
+    note('First line back', csv.split('\n')[0].slice(0, 200) || '(empty)');
+
+    if (/^\s*</.test(csv)) {
+      note('Problem', 'Google sent an HTML page, not CSV. The sheet is probably ' +
+        'not published to the web, or the link is the address-bar link.');
+      throw new Error('Got HTML instead of CSV');
+    }
+
+    const parsed = Papa.parse(csv, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: h => h.trim().toLowerCase()
+    });
+
+    const headers = parsed.meta.fields || [];
+    note('Columns found', headers.join(', ') || '(none)');
+    note('Data rows found', parsed.data.length);
+
+    const expected = ['name', 'category', 'address', 'description'];
+    const missing = expected.filter(h => !headers.includes(h));
+    if (missing.length) {
+      note('Missing columns', missing.join(', ') +
+        ' — row 1 of the sheet must contain these exact header names.');
+    }
+
+    const rows = parsed.data
+      .map(normalize)
+      .filter(p => p.name && (p.address || (p.lat && p.lng)));
+
+    note('Usable places', rows.length +
+      (rows.length < parsed.data.length
+        ? ' (' + (parsed.data.length - rows.length) + ' skipped for missing name or address)'
+        : ''));
+
+    document.getElementById('source-label').textContent =
+      rows.length + ' (from your Google Sheet)';
+    return rows;
+  }
+
+  function diagnosticsHtml(headline) {
+    return '<div class="notice"><strong>' + esc(headline) + '</strong>' +
+      'Here is what happened, step by step:' +
+      '<div class="diag">' +
+      DIAG.steps.map(s =>
+        '<div class="diag-row"><span class="diag-label">' + esc(s.label) + '</span>' +
+        '<span class="diag-value">' + esc(s.value) + '</span></div>'
+      ).join('') +
+      '</div></div>';
+  }
+
+  function normalize(row) {
+    const lat = parseFloat(row.lat);
+    const lng = parseFloat(row.lng);
+    return {
+      name: (row.name || '').trim(),
+      category: (row.category || 'Other').trim(),
+      vibe: (row.vibe || '').trim(),
+      address: (row.address || '').trim(),
+      description: (row.description || '').trim(),
+      lat: isFinite(lat) ? lat : null,
+      lng: isFinite(lng) ? lng : null
+    };
+  }
+
+  // ============================================================
+  // ADDRESS LOOKUP (only for rows with no lat/lng)
+  // ============================================================
+  const GEO_CACHE_KEY = 'sfGuideGeoCache_v2';
+
+  function loadCache() {
+    try { return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function saveCache(cache) {
+    try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(cache)); }
+    catch {}
+  }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function geocodeAll(places) {
+    const cache = loadCache();
+
+    for (const p of places) {
+      if (p.lat && p.lng) continue;
+
+      if (cache[p.address]) {
+        p.lat = cache[p.address].lat;
+        p.lng = cache[p.address].lng;
+        continue;
+      }
+
+      try {
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+          encodeURIComponent(p.address);
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = res.ok ? await res.json() : [];
+
+        if (data.length) {
+          p.lat = parseFloat(data[0].lat);
+          p.lng = parseFloat(data[0].lon);
+          cache[p.address] = { lat: p.lat, lng: p.lng };
+          saveCache(cache);
+        } else {
+          console.warn('Could not find on the map:', p.name, '—', p.address);
+        }
+      } catch (err) {
+        console.error('Lookup failed for', p.name, err);
+      }
+
+      // The free lookup service asks for one request per second.
+      await sleep(1100);
+    }
+
+    return places;
+  }
+
+  // ============================================================
+  // RENDERING
+  // ============================================================
+  function renderMarkers(places) {
+    markers.forEach(m => map.removeLayer(m));
+    markers.length = 0;
+
+    places.forEach(p => {
+      if (!p.lat || !p.lng) return;
+      const marker = L.marker([p.lat, p.lng], { icon: makeIcon(p.category) })
+        .addTo(map)
+        .bindPopup(`
+          <div class="popup-name">${esc(p.name)}</div>
+          <div class="popup-meta">
+            <span class="popup-category">${esc(p.category)}</span>
+            ${p.vibe ? `<span class="vibe">${esc(p.vibe)}</span>` : ''}
+          </div>
+          <div class="popup-desc">${esc(p.description)}</div>
+        `);
+      marker.placeData = p;
+      markers.push(marker);
+    });
+
+    if (markers.length) {
+      map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 15 });
+    }
+  }
+
+  function renderList(places) {
+    const list = document.getElementById('list');
+
+    if (!places.length) {
+      list.innerHTML = '<div class="notice"><strong>Nothing here yet</strong>' +
+        'Add a row to your sheet with this category and refresh.</div>';
+      return;
+    }
+
+    list.innerHTML = places.map((p, i) => `
+      <div class="place" data-idx="${i}">
+        <div class="place-header">
+          <div class="dot" style="background:${colorFor(p.category)}"></div>
+          <div class="place-name">${esc(p.name)}</div>
+        </div>
+        <div class="place-meta">
+          <span class="place-category">${esc(p.category)}</span>
+          ${p.vibe ? `<span class="vibe">${esc(p.vibe)}</span>` : ''}
+        </div>
+        <div class="place-desc">${esc(p.description)}</div>
+        <div class="place-address">${esc(p.address)}</div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.place').forEach(el => {
+      el.addEventListener('click', () => {
+        const p = places[parseInt(el.dataset.idx, 10)];
+        if (!p.lat || !p.lng) return;
+        map.setView([p.lat, p.lng], 16);
+        const marker = markers.find(m => m.placeData === p);
+        if (marker) marker.openPopup();
+      });
+    });
+  }
+
+  function renderFilters(places) {
+    const categories = [...new Set(places.map(p => p.category))].sort();
+    const filters = document.getElementById('filters');
+    filters.innerHTML =
+      `<div class="chip active" data-filter="all">All</div>` +
+      categories.map(c => `<div class="chip" data-filter="${esc(c)}">${esc(c)}</div>`).join('');
+  }
+
+  // ============================================================
+  // FILTERING
+  // ============================================================
+  let ALL_PLACES = [];
+  let activeFilter = 'all';
+
+  function applyFilter() {
+    const filtered = activeFilter === 'all'
+      ? ALL_PLACES
+      : ALL_PLACES.filter(p => p.category === activeFilter);
+    renderList(filtered);
+    renderMarkers(filtered);
+  }
+
+  document.getElementById('filters').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('chip')) return;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    activeFilter = e.target.dataset.filter;
+    applyFilter();
+  });
+
+  // ============================================================
+  // START
+  // ============================================================
+  (async function init() {
+    document.getElementById('list').innerHTML =
+      '<div class="notice">Loading places…</div>';
+
+    try {
+      ALL_PLACES = await loadPlaces();
+
+      if (!ALL_PLACES.length) {
+        document.getElementById('source-label').textContent = '0 — see details';
+        document.getElementById('list').innerHTML =
+          diagnosticsHtml('The sheet loaded, but no places came through');
+        return;
+      }
+
+      renderFilters(ALL_PLACES);
+      applyFilter();              // show the list immediately
+      await geocodeAll(ALL_PLACES);
+      applyFilter();              // redraw once pins are placed
+    } catch (err) {
+      console.error(err);
+      document.getElementById('source-label').textContent = 'could not load';
+      document.getElementById('list').innerHTML =
+        diagnosticsHtml('Couldn\'t load the sheet');
+    }
+  })();
+</script>
+</body>
+</html>
