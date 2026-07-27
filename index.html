@@ -293,6 +293,10 @@
     justify-content: center;
     padding: 24px;
   }
+  /* Must come after the rule above: a class selector beats the
+     browser's built-in styling for [hidden], so without this the
+     dialog stays on screen even when marked hidden. */
+  .modal-backdrop[hidden] { display: none; }
   .modal {
     position: relative;
     background: #fff;
@@ -577,12 +581,12 @@
   const ABOUT = {
     title: "About this guide",
     paragraphs: [
-      "I have lived in SF proper for 8+ years, per and post pandemic. This is a running list of the places I actually go back to — reagrdless of trend or hype. Use it for your next first date or city exploration",
-      "No sponsorships, no affiliate links.",
+      "I have lived in SF proper for 8+ years, pre- and post-pandemic. This is a running list of the places I actually go back to — regardless of trend or hype. Use it for your next first date or city exploration",
+      "No sponsorships, no affiliate links. All opinions are my own",
       "Last updated: July 28, 2026. This list is updated quarterly."
     ],
     // Set to "" to hide the contact line.
-    contactLabel: "Send your comments",
+    contactLabel: "Send your thoughts",
     contactHref: "mailto:shan94ahmad@gmail.com"
   };
 
